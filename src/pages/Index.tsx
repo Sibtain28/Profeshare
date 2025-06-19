@@ -104,19 +104,13 @@ const Index = () => {
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-xl p-6">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Describe your skills and preferences in JSON format
+                  Describe your skills and preferences
                 </label>
                 <Textarea
                   value={jsonInput}
                   onChange={(e) => setJsonInput(e.target.value)}
-                  placeholder={`{
-  "skills": ["React", "TypeScript", "Node.js"],
-  "role": "Frontend Developer",
-  "experience": "3-5 years",
-  "location": "Remote",
-  "salary_range": "$80k-$120k"
-}`}
-                  className="min-h-[200px] font-mono text-sm resize-none border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                  placeholder={`Find your desired Jobs`}
+                  className="min-h-[10px] font-mono text-sm resize-none border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
                 />
               </div>
               
