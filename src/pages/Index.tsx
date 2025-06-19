@@ -1,4 +1,3 @@
-
 import { Search, Home, User } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -22,9 +21,8 @@ const Index = () => {
 
   const handleNavigation = (itemId: string) => {
     setActiveTab(itemId);
-    if (itemId === 'profile') {
-      navigate('/profile');
-    }
+    // Only navigate to profile when explicitly clicking profile in sidebar
+    // Remove automatic navigation, let users stay on homepage
   };
 
   const sidebarItems = [
