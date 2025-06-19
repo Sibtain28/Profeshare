@@ -1,12 +1,14 @@
 
 import { Search, Home, User } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
 const Index = () => {
   const [jsonInput, setJsonInput] = useState('');
   const [activeTab, setActiveTab] = useState('home');
+  const navigate = useNavigate();
 
   const handleSearch = () => {
     try {
@@ -15,6 +17,13 @@ const Index = () => {
       // Handle search logic here
     } catch (error) {
       console.error('Invalid JSON format');
+    }
+  };
+
+  const handleNavigation = (itemId: string) => {
+    setActiveTab(itemId);
+    if (itemId === 'profile') {
+      navigate('/profile');
     }
   };
 
@@ -38,7 +47,7 @@ const Index = () => {
           {sidebarItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => handleNavigation(item.id)}
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
                 activeTab === item.id
                   ? 'bg-blue-100 text-blue-600 shadow-sm'
@@ -56,7 +65,10 @@ const Index = () => {
       <div className="flex-1 flex flex-col">
         {/* Top Bar */}
         <header className="h-16 bg-white/60 backdrop-blur-sm border-b border-slate-200/60 flex items-center justify-end px-6">
-          <div className="w-8 h-8 bg-gradient-to-br from-slate-300 to-slate-400 rounded-full flex items-center justify-center cursor-pointer hover:shadow-md transition-shadow duration-200">
+          <div 
+            className="w-8 h-8 bg-gradient-to-br from-slate-300 to-slate-400 rounded-full flex items-center justify-center cursor-pointer hover:shadow-md transition-shadow duration-200"
+            onClick={() => navigate('/profile')}
+          >
             <User size={16} className="text-slate-600" />
           </div>
         </header>
