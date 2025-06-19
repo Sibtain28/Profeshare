@@ -1,3 +1,4 @@
+
 import { Search, Home, User } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +22,9 @@ const Index = () => {
 
   const handleNavigation = (itemId: string) => {
     setActiveTab(itemId);
+    if (itemId === 'profile') {
+      navigate('/profile');
+    }
     // Only navigate to profile when explicitly clicking profile in sidebar
     // Remove automatic navigation, let users stay on homepage
   };
@@ -28,20 +32,19 @@ const Index = () => {
   const sidebarItems = [
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'search', icon: Search, label: 'Search Jobs' },
-    { id: 'profile', icon: User, label: 'Profile' },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex w-full">
       {/* Left Sidebar */}
-      <div className="w-16 bg-white/80 backdrop-blur-sm border-r border-slate-200/60 flex flex-col items-center py-6 space-y-6">
+      <div className="w-16 bg-white/80 backdrop-blur-sm border-r border-slate-200/60 flex flex-col items-center py-6">
         {/* Logo */}
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center">
+        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center mb-6">
           <div className="w-4 h-4 bg-white rounded-sm"></div>
         </div>
         
         {/* Navigation Items */}
-        <nav className="flex flex-col space-y-4">
+        <nav className="flex flex-col space-y-4 flex-1">
           {sidebarItems.map((item) => (
             <button
               key={item.id}
@@ -57,6 +60,19 @@ const Index = () => {
             </button>
           ))}
         </nav>
+
+        {/* Profile Icon at Bottom */}
+        <button
+          onClick={() => handleNavigation('profile')}
+          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
+            activeTab === 'profile'
+              ? 'bg-blue-100 text-blue-600 shadow-sm'
+              : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+          }`}
+          title="Profile"
+        >
+          <User size={20} />
+        </button>
       </div>
 
       {/* Main Content Area */}
