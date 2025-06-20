@@ -1,20 +1,26 @@
-import {
-  MapPin,
-  Calendar,
-  Building2,
-  GraduationCap,
-  Mail,
-} from 'lucide-react';
+import { MapPin, Calendar, Building2, GraduationCap, Mail, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="max-w-4xl mx-auto p-6">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-slate-600 hover:text-blue-600 transition mb-6"
+        >
+          <ArrowLeft size={20} className="mr-1" />
+          <span className="text-sm font-medium">Back</span>
+        </button>
+
         {/* Header Card */}
-        <Card className="mb-6 overflow-hidden bg-blue-50/30 shadow-md border border-blue-100">
-          <div className="h-0 bg-gradient-to-r from-blue-600 to-indigo-600" />
+        <Card className="mb-6 overflow-hidden">
+          <div className="h-22 bg-white/80 backdrop-blur-md border-b border-slate-200"></div>
           <CardContent className="pt-6 pb-6">
             <div className="flex flex-col sm:flex-row gap-6">
               {/* Avatar at top-left */}
@@ -30,12 +36,8 @@ const Profile = () => {
 
               {/* Profile Info */}
               <div className="flex-1 min-w-0">
-                <h1 className="text-3xl font-semibold text-slate-800 mb-1">
-                  Sarah Anderson
-                </h1>
-                <p className="text-base text-slate-600 mb-2">
-                  Senior UI/UX Designer & Product Manager
-                </p>
+                <h1 className="text-3xl font-semibold text-slate-800 mb-1">Sarah Anderson</h1>
+                <p className="text-base text-slate-600 mb-2">Senior UI/UX Designer & Product Manager</p>
 
                 <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-2">
                   <div className="flex items-center gap-1">
@@ -58,8 +60,7 @@ const Profile = () => {
                 </div>
 
                 <p className="mt-4 text-slate-700 text-sm leading-relaxed">
-                  Passionate UI/UX Designer with 6+ years of experience creating
-                  user-centered digital experiences. Specialized in design systems, mobile interfaces, and cross-functional collaboration.
+                  Passionate UI/UX Designer with 6+ years of experience creating user-centered digital experiences. Specialized in design systems, mobile interfaces, and cross-functional collaboration.
                 </p>
               </div>
             </div>
@@ -67,7 +68,7 @@ const Profile = () => {
         </Card>
 
         {/* Experience Section */}
-        <Card className="shadow-sm border border-slate-200/60 bg-white/80 backdrop-blur-sm">
+        <Card>
           <CardHeader>
             <h2 className="text-xl font-semibold text-slate-800">Experience</h2>
           </CardHeader>
@@ -135,17 +136,12 @@ const Profile = () => {
               },
             ].map((item, i) => (
               <div key={i} className="flex gap-4 py-6">
-                <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center text-white
-                    ${i === 0 ? 'bg-blue-600' : i === 1 ? 'bg-green-600' : 'bg-purple-600'}`}
-                >
+                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-600">
                   <Building2 size={20} />
                 </div>
 
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-0.5">
-                    {item.title}
-                  </h3>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-0.5">{item.title}</h3>
                   <p className="text-slate-600 text-sm mb-1">{item.company}</p>
                   <div className="flex items-center gap-4 text-xs text-slate-500 mb-2">
                     <div className="flex items-center gap-1">
@@ -169,7 +165,7 @@ const Profile = () => {
                     {item.skills.map((skill) => (
                       <span
                         key={skill}
-                        className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200"
+                        className="px-3 py-1 bg-slate-100 text-slate-700 text-xs rounded-full border border-slate-300"
                       >
                         {skill}
                       </span>
