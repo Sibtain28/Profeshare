@@ -10,6 +10,12 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
+import ResultsPage from './pages/ResultsPage';
+
+
+
+
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -40,6 +46,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
+          <Route path="/results" element={<ResultsPage />} />
             <Route path="/" element={<Index />} />
             <Route path="/profile" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
