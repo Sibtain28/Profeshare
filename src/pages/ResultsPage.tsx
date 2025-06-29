@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { ListOrdered, Briefcase, Home, Search, User, ArrowLeft, CheckCircle } from 'lucide-react';
+import { ListOrdered, Briefcase, Home, Search, User, ArrowLeft, CheckCircle, ExternalLink, MapPin, Building2, Star } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ApiResponse, JobResult } from '@/services/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 export default function ResultsPage() {
   const [activeTab, setActiveTab] = useState<'steps' | 'results'>('steps');
@@ -12,10 +15,12 @@ export default function ResultsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const prompt = location.state?.prompt || 'Your Search Prompt';
+  const apiResponse: ApiResponse | null = location.state?.apiResponse || null;
 
   const sidebarItems = [
     { id: 'home', icon: Home, label: 'Home', route: '/' },
     { id: 'search', icon: Search, label: 'Search Jobs', route: '/' },
+    { id: 'student-profile', icon: User, label: 'Student Profile', route: '/student-profile' },
   ];
 
   const [sidebarTab, setSidebarTab] = useState('search');
@@ -58,6 +63,84 @@ export default function ResultsPage() {
       setProgressHeight(bottom - top);
     }
   }, [stepIndex]);
+
+  const formatScore = (score: number) => {
+    return Math.round(score);
+  };
+
+  const getMatchStrength = (score: number) => {
+    if (score >= 30) return { stars: 5, color: 'text-green-600', label: 'Excellent Match' };
+    if (score >= 25) return { stars: 4, color: 'text-blue-600', label: 'Very Good Match' };
+    if (score >= 20) return { stars: 3, color: 'text-yellow-600', label: 'Good Match' };
+    if (score >= 15) return { stars: 2, color: 'text-orange-600', label: 'Fair Match' };
+    return { stars: 1, color: 'text-red-600', label: 'Basic Match' };
+  };
+
+  const renderJobCard = (job: JobResult, index: number) => {
+    const matchInfo = getMatchStrength(job.score);
+    
+    return (
+      <Card key={index} className="mb-6">
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <CardTitle className="text-xl mb-2">{job.title}</CardTitle>
+              <div className="flex items-center gap-2 text-slate-600 mb-2">
+                <Building2 size={16} />
+                <span className="font-medium">{job.companyName}</span>
+                <span>•</span>
+                <MapPin size={16} />
+                <span>{job.location}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={16}
+                      className={`${i < matchInfo.stars ? matchInfo.color : 'text-slate-300'}`}
+                      fill={i < matchInfo.stars ? 'currentColor' : 'none'}
+                    />
+                  ))}
+                </div>
+                <Badge variant="secondary" className={matchInfo.color}>
+                  {matchInfo.label} ({formatScore(job.score)}%)
+                </Badge>
+              </div>
+            </div>
+            <a
+              href={job.jdURL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800"
+            >
+              <ExternalLink size={20} />
+            </a>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <h4 className="font-semibold text-slate-800 mb-2">Job Description</h4>
+            <div 
+              className="text-sm text-slate-700 prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: job.jobDescription }}
+            />
+          </div>
+          
+          <div>
+            <h4 className="font-semibold text-slate-800 mb-2">Skills & Tags</h4>
+            <div className="flex flex-wrap gap-2">
+              {job.tagsAndSkills.split(',').map((skill, skillIndex) => (
+                <Badge key={skillIndex} variant="outline" className="text-xs">
+                  {skill.trim()}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex w-full">
@@ -106,7 +189,7 @@ export default function ResultsPage() {
           </div>
         </header>
 
-        <main className="flex-1 px-6 pt-10 pb-16 w-full max-w-2xl mx-auto overflow-y-auto">
+        <main className="flex-1 px-6 pt-10 pb-16 w-full max-w-4xl mx-auto overflow-y-auto">
           <button
             onClick={() => navigate('/', { state: { prompt } })}
             className="flex items-center text-slate-600 hover:text-blue-600 transition mb-6"
@@ -169,13 +252,13 @@ export default function ResultsPage() {
                     )}
 
                     <div>
-                    <div
-  className={`text-sm font-medium mb-1 ${
-    i === steps.length - 1 ? 'ml-4' : ''
-  }`}
->
-  {step.title}
-</div>
+                      <div
+                        className={`text-sm font-medium mb-1 ${
+                          i === steps.length - 1 ? 'ml-4' : ''
+                        }`}
+                      >
+                        {step.title}
+                      </div>
 
                       {step.thinkText && (
                         <div className="mt-2 border border-slate-200 bg-white rounded-xl p-6 text-sm text-slate-700 shadow-sm max-h-[250px] min-h-[200px] w-full overflow-y-auto whitespace-pre-line leading-relaxed">
@@ -189,138 +272,43 @@ export default function ResultsPage() {
             </div>
           )}
 
-{activeTab === 'results' && (
-  <div className="mt-4 text-sm text-slate-700 space-y-6">
-    <p className="text-green-600 font-medium">Job Results loading complete.</p>
-    {[
-      {
-        title: "Frontend Developer Intern - React",
-        matchScore: 92,
-        fitReasons: [
-          "Strong match with your React experience",
-          "Frontend projects align with required skills",
-          "Familiarity with HTML/CSS/JS frameworks"
-        ],
-        mismatches: ["No prior internship experience"]
-      },
-      {
-        title: "Data Analyst Intern - Python & SQL",
-        matchScore: 89,
-        fitReasons: [
-          "Solid foundation in Python",
-          "Strong data handling and analysis interest",
-          "Coursework related to DBMS and stats"
-        ],
-        mismatches: ["Basic level of SQL usage"]
-      },
-      {
-        title: "Machine Learning Research Intern",
-        matchScore: 85,
-        fitReasons: [
-          "Interest in AI/ML as seen in projects",
-          "Mathematical background fits requirements"
-        ],
-        mismatches: ["Limited research publication experience"]
-      },
-      {
-        title: "Web Development Intern - MERN Stack",
-        matchScore: 90,
-        fitReasons: [
-          "Experience with React and Node.js",
-          "Personal projects match stack"
-        ],
-        mismatches: ["MongoDB proficiency needs improvement"]
-      },
-      {
-        title: "Product Design Intern - UI/UX",
-        matchScore: 76,
-        fitReasons: [
-          "Strong design sensibility",
-          "Knowledge of Figma and user-centered thinking"
-        ],
-        mismatches: ["No formal design course"]
-      },
-      {
-        title: "Technical Content Writer - AI",
-        matchScore: 88,
-        fitReasons: [
-          "Strong writing ability",
-          "Knowledge of AI/ML helps in content depth"
-        ],
-        mismatches: ["Limited blog/public platform writing"]
-      },
-      {
-        title: "Backend Developer Intern - Node.js",
-        matchScore: 80,
-        fitReasons: [
-          "Good JavaScript fundamentals",
-          "Express.js experience"
-        ],
-        mismatches: ["Database schema design needs improvement"]
-      },
-      {
-        title: "Cloud Engineering Intern - AWS",
-        matchScore: 72,
-        fitReasons: [
-          "Interest in DevOps and Cloud",
-          "Linux and networking exposure"
-        ],
-        mismatches: ["No AWS certification"]
-      },
-      {
-        title: "Business Analyst Intern",
-        matchScore: 83,
-        fitReasons: [
-          "Analytical mindset",
-          "Strong communication skills"
-        ],
-        mismatches: ["Basic Excel knowledge"]
-      },
-      {
-        title: "Cybersecurity Intern",
-        matchScore: 75,
-        fitReasons: [
-          "Completed security-related courses",
-          "Interest in ethical hacking"
-        ],
-        mismatches: ["No hands-on project in cybersecurity"]
-      },
-      {
-        title: "AI Chatbot Development Intern",
-        matchScore: 91,
-        fitReasons: [
-          "Experience building LLM-based interfaces",
-          "Strong understanding of prompt engineering"
-        ],
-        mismatches: ["Lacks knowledge of RAG pipelines"]
-      }
-    ].map((job, index) => (
-      <div key={index} className="border border-slate-200 rounded-lg p-4 shadow-sm bg-white">
-        <div className="text-lg font-semibold text-slate-800">{job.title}</div>
-        <div className="text-sm text-green-600 font-medium mt-1">Match Score: {job.matchScore}%</div>
-        <div className="mt-2 text-slate-700">
-          <strong>Why you're a good fit:</strong>
-          <ul className="list-disc ml-5 mt-1">
-            {job.fitReasons.map((reason, i) => (
-              <li key={i}>{reason}</li>
-            ))}
-          </ul>
-        </div>
-        {job.mismatches.length > 0 && (
-          <div className="mt-2 text-slate-700">
-            <strong>Minor mismatches:</strong>
-            <ul className="list-disc ml-5 mt-1 text-orange-600">
-              {job.mismatches.map((reason, i) => (
-                <li key={i}>{reason}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-    ))}
-  </div>
-)}
+          {activeTab === 'results' && (
+            <div className="space-y-6">
+              {apiResponse ? (
+                <>
+                  {/* AI Analysis */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Briefcase size={20} />
+                        AI Analysis & Recommendations
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div 
+                        className="prose prose-sm max-w-none text-slate-700"
+                        dangerouslySetInnerHTML={{ 
+                          __html: apiResponse.analysis.replace(/\n/g, '<br/>') 
+                        }}
+                      />
+                    </CardContent>
+                  </Card>
 
+                  {/* Job Results */}
+                  <div>
+                    <h2 className="text-2xl font-semibold text-slate-800 mb-6">
+                      Job Matches ({apiResponse.mongodb_result.length} results)
+                    </h2>
+                    {apiResponse.mongodb_result.map((job, index) => renderJobCard(job, index))}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-slate-600">No job results available. Please try searching again.</p>
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
     </div>
