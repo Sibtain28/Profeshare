@@ -48,8 +48,8 @@ export default function ResultsPage() {
     { title: 'Perfect Opportunity is Found ✅' }
   ];
 
-  // Step durations: 41.25s for first 4, last step waits for API
-  const stepDuration = 41250; // ms
+  // Step durations: 25s for first 4, last step waits for API
+  const stepDuration = 25000; // ms
 
   // Start API call on mount
   useEffect(() => {
