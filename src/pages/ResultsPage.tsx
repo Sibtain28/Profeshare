@@ -1,21 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
-import { ListOrdered, Briefcase, Home, Search, User, ArrowLeft, CheckCircle, ExternalLink, MapPin, Building2, Star } from 'lucide-react';
+import { ListOrdered, Briefcase, Home, Search, User, ArrowLeft, CheckCircle, ExternalLink, MapPin, Building2, Star, Loader2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiResponse, JobResult } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { useStudent } from '@/contexts/StudentContext';
+import { ApiService } from '@/services/api';
 
 export default function ResultsPage() {
-  const [activeTab, setActiveTab] = useState<'steps' | 'results'>('steps');
-  const [stepIndex, setStepIndex] = useState(0);
-  const progressRef = useRef<HTMLDivElement>(null);
-  const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const [progressHeight, setProgressHeight] = useState(0);
-
   const location = useLocation();
   const navigate = useNavigate();
   const prompt = location.state?.prompt || 'Your Search Prompt';
-  const apiResponse: ApiResponse | null = location.state?.apiResponse || null;
+  const { studentData } = useStudent();
+
+  const [activeTab, setActiveTab] = useState<'steps' | 'results'>('steps');
+  const [stepIndex, setStepIndex] = useState(0);
+  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
+  const [apiDone, setApiDone] = useState(false);
+  const progressRef = useRef<HTMLDivElement>(null);
+  const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [progressHeight, setProgressHeight] = useState(0);
 
   const sidebarItems = [
     { id: 'home', icon: Home, label: 'Home', route: '/' },
@@ -42,19 +48,44 @@ export default function ResultsPage() {
     { title: 'Perfect Opportunity is Found ✅' }
   ];
 
-  useEffect(() => {
-    if (stepIndex < steps.length - 1) {
-      const timeout = setTimeout(() => setStepIndex((prev) => prev + 1), 2000);
-      return () => clearTimeout(timeout);
-    }
+  // Step durations: 41.25s for first 4, last step waits for API
+  const stepDuration = 41250; // ms
 
-    if (stepIndex === steps.length - 1) {
-      const timeout = setTimeout(() => {
-        setActiveTab('results');
-      }, 2000);
-      return () => clearTimeout(timeout);
+  // Start API call on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchJobs() {
+      try {
+        const request = {
+          intern_name: `${studentData.first_name} ${studentData.last_name}`,
+          students: [studentData],
+          interests: prompt
+        };
+        const res = await ApiService.searchJobs(request);
+        if (!cancelled) {
+          setApiResponse(res);
+          setApiDone(true);
+        }
+      } catch (e) {
+        if (!cancelled) setApiDone(true);
+      }
     }
-  }, [stepIndex]);
+    fetchJobs();
+    return () => { cancelled = true; };
+  }, [prompt, studentData]);
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (stepIndex < steps.length - 1) {
+      timeout = setTimeout(() => setStepIndex((prev) => prev + 1), stepDuration);
+    } else if (stepIndex === steps.length - 1 && apiDone) {
+      // After API is done, pop the last step and show results
+      timeout = setTimeout(() => {
+        setActiveTab('results');
+      }, 1000);
+    }
+    return () => clearTimeout(timeout);
+  }, [stepIndex, apiDone]);
 
   useEffect(() => {
     if (progressRef.current && stepRefs.current[stepIndex]) {
@@ -130,11 +161,15 @@ export default function ResultsPage() {
           <div>
             <h4 className="font-semibold text-slate-800 mb-2">Skills & Tags</h4>
             <div className="flex flex-wrap gap-2">
-              {job.tagsAndSkills.split(',').map((skill, skillIndex) => (
-                <Badge key={skillIndex} variant="outline" className="text-xs">
-                  {skill.trim()}
-                </Badge>
-              ))}
+              {job.tagsAndSkills && job.tagsAndSkills.trim() ? (
+                job.tagsAndSkills.split(',').map((skill, skillIndex) => (
+                  <Badge key={skillIndex} variant="outline" className="text-xs">
+                    {skill.trim()}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs text-slate-400 italic">Field missing</span>
+              )}
             </div>
           </div>
         </CardContent>
@@ -231,35 +266,28 @@ export default function ResultsPage() {
                   style={{ height: `${progressHeight}px` }}
                 />
               </div>
-
               {/* Steps with aligned dots */}
               <div className="flex-1 space-y-6 pl-4">
-                {steps.slice(0, stepIndex + 1).map((step, i) => (
+                {steps.map((step, i) => (
                   <div
                     key={i}
                     ref={(el) => (stepRefs.current[i] = el)}
                     className="mb-6 relative flex items-start gap-3"
                   >
                     {/* Dot aligned on the line */}
-                    <div className="absolute left-[-35px] top-[6px] w-3 h-3 bg-[#ccc] rounded-full z-10" />
-
-                    {/* Tick icon for final step */}
-                    {i === steps.length - 1 && stepIndex === steps.length - 1 && (
-                      <CheckCircle
-                        className="text-green-500 absolute left-[-10px] top-[2px] animate-ping-slow z-20"
-                        size={18}
-                      />
-                    )}
-
+                    <div
+                      className="absolute left-[-35px] top-[6px] w-3 h-3 rounded-full z-10"
+                      style={{ background: i < stepIndex || (i === steps.length - 1 && apiDone) ? '#22c55e' : '#ccc' }}
+                    />
                     <div>
-                      <div
-                        className={`text-sm font-medium mb-1 ${
-                          i === steps.length - 1 ? 'ml-4' : ''
-                        }`}
-                      >
-                        {step.title}
+                      <div className={`text-sm font-medium mb-1 flex items-center gap-2 ${i === steps.length - 1 ? 'ml-4' : ''}`}>{step.title}
+                        {/* Icon logic: show only one at a time, now at the end of the text */}
+                        {((i === stepIndex && i < steps.length - 1) || (i === steps.length - 1 && stepIndex === steps.length - 1 && !apiDone)) ? (
+                          <Loader2 className="ml-2 animate-spin text-blue-500 z-20" size={18} />
+                        ) : (i < stepIndex || (i === steps.length - 1 && apiDone)) ? (
+                          <CheckCircle className="ml-2 text-green-500 z-20" size={18} />
+                        ) : null}
                       </div>
-
                       {step.thinkText && (
                         <div className="mt-2 border border-slate-200 bg-white rounded-xl p-6 text-sm text-slate-700 shadow-sm max-h-[250px] min-h-[200px] w-full overflow-y-auto whitespace-pre-line leading-relaxed">
                           {step.thinkText}
@@ -285,12 +313,9 @@ export default function ResultsPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div 
-                        className="prose prose-sm max-w-none text-slate-700"
-                        dangerouslySetInnerHTML={{ 
-                          __html: apiResponse.analysis.replace(/\n/g, '<br/>') 
-                        }}
-                      />
+                      <div className="prose prose-sm max-w-none text-slate-700">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{apiResponse.analysis}</ReactMarkdown>
+                      </div>
                     </CardContent>
                   </Card>
 

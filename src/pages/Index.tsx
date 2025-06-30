@@ -60,27 +60,18 @@ export default function Index() {
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
-    
+
     setIsLoading(true);
     try {
-      const request = {
-        intern_name: `${studentData.first_name} ${studentData.last_name}`,
-        students: [studentData],
-        interests: input
-      };
-
-      const response = await ApiService.searchJobs(request);
-      
-      navigate('/results', { 
-        state: { 
-          prompt: input,
-          apiResponse: response 
-        } 
+      // Only navigate with prompt, do not pass apiPromise
+      navigate('/results', {
+        state: {
+          prompt: input
+        }
       });
     } catch (error) {
       console.error('Search failed:', error);
       alert('Failed to search for jobs. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -88,27 +79,17 @@ export default function Index() {
   const handleSuggestionClick = async (suggestion: string) => {
     setInput(suggestion);
     setShowSuggestions(false);
-    
+
     setIsLoading(true);
     try {
-      const request = {
-        intern_name: `${studentData.first_name} ${studentData.last_name}`,
-        students: [studentData],
-        interests: suggestion
-      };
-
-      const response = await ApiService.searchJobs(request);
-      
-      navigate('/results', { 
-        state: { 
-          prompt: suggestion,
-          apiResponse: response 
-        } 
+      navigate('/results', {
+        state: {
+          prompt: suggestion
+        }
       });
     } catch (error) {
       console.error('Search failed:', error);
       alert('Failed to search for jobs. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
