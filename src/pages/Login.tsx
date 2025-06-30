@@ -123,7 +123,7 @@ const Login = ({ onLogin }: LoginProps) => {
               )}
               {!demoLoading && !demoError && demoAccounts.map((acc, idx) => (
                 <div key={idx} className="mb-2">
-                  <b>Email:</b> {acc.email}<br /><b>Password:</b> {acc.password}
+                  <b>Email:</b> {acc.email}<br />
                 </div>
               ))}
             </div>

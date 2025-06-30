@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ListOrdered, Briefcase, Home, Search, User, ArrowLeft, CheckCircle, ExternalLink, MapPin, Building2, Star, Loader2 } from 'lucide-react';
+import { ListOrdered, Briefcase, ArrowLeft, CheckCircle, ExternalLink, MapPin, Building2, Star, Loader2, AlertTriangle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApiResponse, JobResult } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,11 +8,13 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useStudent } from '@/contexts/StudentContext';
 import { ApiService } from '@/services/api';
+import { AppSidebar } from '@/components/ui/sidebar';
 
 export default function ResultsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const prompt = location.state?.prompt || 'Your Search Prompt';
+  const mode = location.state?.mode || 'deep';
   const { studentData } = useStudent();
 
   const [activeTab, setActiveTab] = useState<'steps' | 'results'>('steps');
@@ -22,20 +24,6 @@ export default function ResultsPage() {
   const progressRef = useRef<HTMLDivElement>(null);
   const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [progressHeight, setProgressHeight] = useState(0);
-
-  const sidebarItems = [
-    { id: 'home', icon: Home, label: 'Home', route: '/' },
-    { id: 'search', icon: Search, label: 'Search Jobs', route: '/' },
-    { id: 'student-profile', icon: User, label: 'Student Profile', route: '/student-profile' },
-  ];
-
-  const [sidebarTab, setSidebarTab] = useState('search');
-
-  const handleNavigation = (id: string, route?: string) => {
-    setSidebarTab(id);
-    if (id === 'profile') navigate('/profile');
-    else if (route) navigate(route);
-  };
 
   const steps = [
     { title: 'Student profile being analysed' },
@@ -59,7 +47,8 @@ export default function ResultsPage() {
         const request = {
           intern_name: `${studentData.first_name} ${studentData.last_name}`,
           students: [studentData],
-          interests: prompt
+          interests: prompt,
+          mode: mode
         };
         const res = await ApiService.searchJobs(request);
         if (!cancelled) {
@@ -72,16 +61,17 @@ export default function ResultsPage() {
     }
     fetchJobs();
     return () => { cancelled = true; };
-  }, [prompt, studentData]);
+  }, [prompt, studentData, mode]);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (stepIndex < steps.length - 1) {
       timeout = setTimeout(() => setStepIndex((prev) => prev + 1), stepDuration);
     } else if (stepIndex === steps.length - 1 && apiDone) {
-      // After API is done, pop the last step and show results
+      // After API is done, show results first, then switch to steps tab
       timeout = setTimeout(() => {
         setActiveTab('results');
+        setTimeout(() => setActiveTab('steps'), 1000);
       }, 1000);
     }
     return () => clearTimeout(timeout);
@@ -179,49 +169,11 @@ export default function ResultsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex w-full">
-      {/* Sidebar */}
-      <div className="w-16 bg-white/80 backdrop-blur-sm border-r border-slate-200/60 flex flex-col items-center py-6">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center mb-6">
-          <div className="w-4 h-4 bg-white rounded-sm" />
-        </div>
-        <nav className="flex flex-col space-y-4 flex-1">
-          {sidebarItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleNavigation(item.id, item.route)}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-                sidebarTab === item.id
-                  ? 'bg-blue-100 text-blue-600 shadow-sm'
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
-              }`}
-              title={item.label}
-            >
-              <item.icon size={20} />
-            </button>
-          ))}
-        </nav>
-        <button
-          onClick={() => handleNavigation('profile')}
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-            sidebarTab === 'profile'
-              ? 'bg-blue-100 text-blue-600 shadow-sm'
-              : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
-          }`}
-          title="Profile"
-        >
-          <User size={20} />
-        </button>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <AppSidebar activeTab="search" />
+      {/* Main Content - Add margin to account for fixed sidebar */}
+      <div className="flex-1 flex flex-col ml-16">
         <header className="h-16 bg-white/60 backdrop-blur-sm border-b border-slate-200/60 flex items-center justify-end px-6">
-          <div
-            className="w-8 h-8 bg-gradient-to-br from-slate-300 to-slate-400 rounded-full flex items-center justify-center cursor-pointer hover:shadow-md transition-shadow duration-200"
-            onClick={() => navigate('/profile')}
-          >
-            <User size={16} className="text-slate-600" />
-          </div>
+          {/* Removed profile icon */}
         </header>
 
         <main className="flex-1 px-6 pt-10 pb-16 w-full max-w-4xl mx-auto overflow-y-auto">
@@ -230,12 +182,23 @@ export default function ResultsPage() {
             className="flex items-center text-slate-600 hover:text-blue-600 transition mb-6"
           >
             <ArrowLeft size={20} className="mr-1" />
-            <span className="text-sm font-medium">Back to Edit Prompt</span>
+            <span className="text-sm font-medium">Back to Edit Search</span>
           </button>
 
           <div className="text-left mb-6 pl-4">
             <div className="text-3xl font-light text-slate-800 mb-8 -mt-2">{prompt}</div>
             <div className="flex space-x-6 border-b border-slate-200">
+              {apiResponse && (
+                <button
+                  className={`pb-1 border-b-2 text-sm font-medium flex items-center gap-1 ${
+                    activeTab === 'results' ? 'border-black text-black' : 'border-transparent text-slate-500'
+                  }`}
+                  onClick={() => setActiveTab('results')}
+                >
+                  <Briefcase size={16} />
+                  Job Results
+                </button>
+              )}
               <button
                 className={`pb-1 border-b-2 text-sm font-medium flex items-center gap-1 ${
                   activeTab === 'steps' ? 'border-black text-black' : 'border-transparent text-slate-500'
@@ -245,93 +208,125 @@ export default function ResultsPage() {
                 <ListOrdered size={16} />
                 Thinking
               </button>
-              <button
-                className={`pb-1 border-b-2 text-sm font-medium flex items-center gap-1 ${
-                  activeTab === 'results' ? 'border-black text-black' : 'border-transparent text-slate-500'
-                }`}
-                onClick={() => setActiveTab('results')}
-              >
-                <Briefcase size={16} />
-                Job Results
-              </button>
             </div>
           </div>
 
+          {/* Show results first if they're available */}
+          {apiResponse && activeTab === 'results' && (
+            <div className="space-y-6">
+              {/* Job Results */}
+              <h2 className="text-2xl font-semibold text-slate-800 mb-6">
+                Job Matches Found
+              </h2>
+
+              {/* LLM Analysis Cards */}
+              {(() => {
+                let analysisArr: any[] = [];
+                try {
+                  analysisArr = typeof apiResponse.analysis === 'string' ? JSON.parse(apiResponse.analysis) : apiResponse.analysis;
+                } catch (e) {
+                  // fallback: show nothing if parsing fails
+                }
+                return analysisArr && Array.isArray(analysisArr) && analysisArr.length > 0 ? (
+                  <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {analysisArr.map((item, idx) => (
+                      <Card key={idx} className="shadow-xl border border-slate-200/60 bg-white/80 dark:bg-[#232328] dark:border-[#2d2d31]">
+                        <CardHeader>
+                          <div className="flex items-center gap-3 mb-2">
+                            <Building2 className="text-blue-600 dark:text-blue-400" size={20} />
+                            <span className="text-lg font-semibold text-slate-800 dark:text-slate-100">{item.company_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 mb-2">
+                            <Briefcase size={16} />
+                            <span className="font-medium">{item.job_role}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Star size={18} className="text-yellow-400" fill="#facc15" />
+                            <span className="font-semibold text-slate-700 dark:text-slate-200">Match Score:</span>
+                            <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{item.match_score}</span>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="mb-3">
+                            <div className="font-semibold text-green-600 dark:text-green-400 flex items-center gap-2 mb-1">
+                              <CheckCircle size={16} /> Strengths
+                            </div>
+                            <ul className="list-disc pl-6 space-y-1">
+                              {item.strengths && item.strengths.length > 0 ? item.strengths.map((s: string, i: number) => (
+                                <li key={i} className="text-slate-700 dark:text-slate-200 text-sm flex items-start gap-2">
+                                  <span className="mt-0.5"><CheckCircle size={14} className="text-green-500 dark:text-green-400" /></span> {s}
+                                </li>
+                              )) : <li className="text-slate-400 italic">None listed</li>}
+                            </ul>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-red-600 dark:text-red-400 flex items-center gap-2 mb-1">
+                              <AlertTriangle size={16} /> Weaknesses
+                            </div>
+                            <ul className="list-disc pl-6 space-y-1">
+                              {item.weakness && item.weakness.length > 0 ? item.weakness.map((w: string, i: number) => (
+                                <li key={i} className="text-slate-700 dark:text-slate-200 text-sm flex items-start gap-2">
+                                  <span className="mt-0.5"><AlertTriangle size={14} className="text-red-500 dark:text-red-400" /></span> {w}
+                                </li>
+                              )) : <li className="text-slate-400 italic">None listed</li>}
+                            </ul>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Job Results Cards */}
+              {apiResponse.mongodb_result.map((job, index) => renderJobCard(job, index))}
+            </div>
+          )}
+
+          {/* Thinking steps */}
           {activeTab === 'steps' && (
             <div className="relative flex max-h-[70vh] overflow-y-auto pr-2">
               {/* Vertical thread line */}
               <div className="w-6 relative" ref={progressRef}>
                 <div
-                  className="absolute top-2 left-1/2 -translate-x-1/2 w-[2px] bg-[#444] transition-all duration-700 ease-out"
+                  className="absolute top-2 left-1/2 -translate-x-1/2 w-[2px] bg-green-500 transition-all duration-700 ease-out"
                   style={{ height: `${progressHeight}px` }}
                 />
               </div>
               {/* Steps with aligned dots */}
               <div className="flex-1 space-y-6 pl-4">
                 {steps.map((step, i) => (
-                  <div
-                    key={i}
-                    ref={(el) => (stepRefs.current[i] = el)}
-                    className="mb-6 relative flex items-start gap-3"
-                  >
-                    {/* Dot aligned on the line */}
+                  // Only render steps up to and including the current step
+                  i <= stepIndex ? (
                     <div
-                      className="absolute left-[-35px] top-[6px] w-3 h-3 rounded-full z-10"
-                      style={{ background: i < stepIndex || (i === steps.length - 1 && apiDone) ? '#22c55e' : '#ccc' }}
-                    />
-                    <div>
-                      <div className={`text-sm font-medium mb-1 flex items-center gap-2 ${i === steps.length - 1 ? 'ml-4' : ''}`}>{step.title}
-                        {/* Icon logic: show only one at a time, now at the end of the text */}
-                        {((i === stepIndex && i < steps.length - 1) || (i === steps.length - 1 && stepIndex === steps.length - 1 && !apiDone)) ? (
-                          <Loader2 className="ml-2 animate-spin text-blue-500 z-20" size={18} />
-                        ) : (i < stepIndex || (i === steps.length - 1 && apiDone)) ? (
-                          <CheckCircle className="ml-2 text-green-500 z-20" size={18} />
-                        ) : null}
-                      </div>
-                      {step.thinkText && (
-                        <div className="mt-2 border border-slate-200 bg-white rounded-xl p-6 text-sm text-slate-700 shadow-sm max-h-[250px] min-h-[200px] w-full overflow-y-auto whitespace-pre-line leading-relaxed">
-                          {step.thinkText}
+                      key={i}
+                      ref={(el) => (stepRefs.current[i] = el)}
+                      className="mb-6 relative flex items-start gap-3"
+                    >
+                      {/* Dot aligned on the line */}
+                      <div
+                        className="absolute left-[-35px] top-[6px] w-3 h-3 rounded-full z-10"
+                        style={{ background: i < stepIndex || (i === steps.length - 1 && apiDone) ? '#22c55e' : '#ccc' }}
+                      />
+                      <div>
+                        <div className={`text-sm font-medium mb-1 flex items-center gap-2 ${i === steps.length - 1 ? 'ml-4' : ''}`}>{step.title}
+                          {/* Icon logic: show only one at a time, now at the end of the text */}
+                          {((i === stepIndex && i < steps.length - 1) || (i === steps.length - 1 && stepIndex === steps.length - 1 && !apiDone)) ? (
+                            <Loader2 className="ml-2 animate-spin text-blue-500 z-20" size={18} />
+                          ) : (i < stepIndex || (i === steps.length - 1 && apiDone)) ? (
+                            <CheckCircle className="ml-2 text-green-500 z-20" size={18} />
+                          ) : null}
                         </div>
-                      )}
+                        {step.thinkText && (
+                          <div className="mt-2 border border-slate-200 bg-white rounded-xl p-6 text-sm text-slate-700 shadow-sm max-h-[250px] min-h-[200px] w-full overflow-y-auto whitespace-pre-line leading-relaxed">
+                            {step.thinkText}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ) : null
                 ))}
               </div>
-            </div>
-          )}
-
-          {activeTab === 'results' && (
-            <div className="space-y-6">
-              {apiResponse ? (
-                <>
-                  {/* AI Analysis */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Briefcase size={20} />
-                        AI Analysis & Recommendations
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="prose prose-sm max-w-none text-slate-700">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{apiResponse.analysis}</ReactMarkdown>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Job Results */}
-                  <div>
-                    <h2 className="text-2xl font-semibold text-slate-800 mb-6">
-                      Job Matches ({apiResponse.mongodb_result.length} results)
-                    </h2>
-                    {apiResponse.mongodb_result.map((job, index) => renderJobCard(job, index))}
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-slate-600">No job results available. Please try searching again.</p>
-                </div>
-              )}
             </div>
           )}
         </main>

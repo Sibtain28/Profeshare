@@ -20,6 +20,7 @@ export interface ApiRequest {
   intern_name: string;
   students: any[];
   interests: string;
+  mode: 'deep' | 'classical';
 }
 
 // API Service

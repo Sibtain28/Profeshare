@@ -2,6 +2,9 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
+import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { LogOut, Moon, Sun, Home, Search, User, Settings } from 'lucide-react'
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -732,6 +735,99 @@ const SidebarMenuSubButton = React.forwardRef<
   )
 })
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
+
+export function AppSidebar({ activeTab }: { activeTab: string }) {
+  const navigate = useNavigate();
+  const [showSettings, setShowSettings] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [showLogoutSuccess, setShowLogoutSuccess] = useState(false);
+
+  const sidebarItems = [
+    { id: 'home', icon: Home, label: 'Home', route: '/' },
+    { id: 'search', icon: Search, label: 'Search Jobs', route: '/' },
+    { id: 'student-profile', icon: User, label: 'Student Profile', route: '/student-profile' },
+  ];
+
+  const handleThemeToggle = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+    // Add real theme logic here if needed
+  };
+
+  const handleLogout = () => {
+    localStorage.setItem('logoutSuccess', '1');
+    window.location.reload();
+  };
+
+  useEffect(() => {
+    if (localStorage.getItem('logoutSuccess') === '1') {
+      setShowLogoutSuccess(true);
+      setTimeout(() => {
+        setShowLogoutSuccess(false);
+        localStorage.removeItem('logoutSuccess');
+      }, 2000);
+    }
+  }, []);
+
+  return (
+    <>
+      <div className="fixed left-0 top-0 h-screen w-16 bg-white/80 backdrop-blur-sm border-r border-slate-200/60 flex flex-col items-center py-6 z-50">
+        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center mb-6">
+          <div className="w-4 h-4 bg-white rounded-sm" />
+        </div>
+        <nav className="flex flex-col space-y-4 flex-1">
+          {sidebarItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => navigate(item.route)}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                activeTab === item.id
+                  ? 'bg-blue-100 text-blue-600 shadow-sm'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+              }`}
+              title={item.label}
+            >
+              <item.icon size={20} />
+            </button>
+          ))}
+        </nav>
+        {/* Settings Button at Bottom */}
+        <div className="mt-auto mb-2 relative">
+          <button
+            onClick={() => setShowSettings((v) => !v)}
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            title="Settings"
+          >
+            <Settings size={20} />
+          </button>
+          {showSettings && (
+            <div className="absolute left-14 bottom-0 z-50 bg-white border border-slate-200 rounded-xl shadow-lg min-w-[180px] py-3 px-4 flex flex-col gap-2 animate-fade-in">
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition font-semibold w-full justify-start"
+              >
+                <LogOut size={16} /> Logout
+              </button>
+              <button
+                onClick={handleThemeToggle}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-blue-700 hover:bg-blue-50 transition font-semibold w-full justify-start"
+              >
+                {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />} Change Theme
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Logout Success Popup */}
+      {showLogoutSuccess && (
+        <div className="fixed bottom-6 right-6 z-[100] pointer-events-none">
+          <div className="bg-green-600 text-white px-6 py-3 rounded-xl shadow-2xl text-base font-semibold animate-fade-in pointer-events-auto">
+            Logged out successfully!
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 export {
   Sidebar,

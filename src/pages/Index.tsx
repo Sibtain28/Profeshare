@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Send, Home, Search, User } from 'lucide-react';
+import { Send, Sparkles, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { useNavigate } from 'react-router-dom';
 import { useStudent } from '@/contexts/StudentContext';
 import { ApiService } from '@/services/api';
+import { AppSidebar } from '@/components/ui/sidebar';
 
 export default function Index() {
   const [input, setInput] = useState('');
-  const [sidebarTab, setSidebarTab] = useState('home');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeepResearch, setIsDeepResearch] = useState(true);
   const { studentData } = useStudent();
 
   const suggestions = [
@@ -43,30 +45,15 @@ export default function Index() {
 
   const navigate = useNavigate();
 
-  const sidebarItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'search', icon: Search, label: 'Search Jobs' },
-    { id: 'student-profile', icon: User, label: 'Student Profile' },
-  ];
-
-  const handleNavigation = (id: string) => {
-    setSidebarTab(id);
-    if (id === 'profile') {
-      navigate('/profile');
-    } else if (id === 'student-profile') {
-      navigate('/student-profile');
-    }
-  };
-
   const handleSubmit = async () => {
     if (!input.trim()) return;
 
     setIsLoading(true);
     try {
-      // Only navigate with prompt, do not pass apiPromise
       navigate('/results', {
         state: {
-          prompt: input
+          prompt: input,
+          mode: isDeepResearch ? 'deep' : 'classical'
         }
       });
     } catch (error) {
@@ -84,7 +71,8 @@ export default function Index() {
     try {
       navigate('/results', {
         state: {
-          prompt: suggestion
+          prompt: suggestion,
+          mode: isDeepResearch ? 'deep' : 'classical'
         }
       });
     } catch (error) {
@@ -96,52 +84,12 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex w-full">
-      {/* Sidebar */}
-      <div className="w-16 bg-white/80 backdrop-blur-sm border-r border-slate-200/60 flex flex-col items-center py-6">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center mb-6">
-          <div className="w-4 h-4 bg-white rounded-sm" />
-        </div>
-
-        <nav className="flex flex-col space-y-4 flex-1">
-          {sidebarItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleNavigation(item.id)}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-                sidebarTab === item.id
-                  ? 'bg-blue-100 text-blue-600 shadow-sm'
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
-              }`}
-              title={item.label}
-            >
-              <item.icon size={20} />
-            </button>
-          ))}
-        </nav>
-
-        <button
-          onClick={() => handleNavigation('profile')}
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-            sidebarTab === 'profile'
-              ? 'bg-blue-100 text-blue-600 shadow-sm'
-              : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
-          }`}
-          title="Profile"
-        >
-          <User size={20} />
-        </button>
-      </div>
-
+      <AppSidebar activeTab="home" />
       {/* Main content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col ml-16">
         {/* Header */}
         <header className="h-16 bg-white/60 backdrop-blur-sm border-b border-slate-200/60 flex items-center justify-end px-6">
-          <div
-            className="w-8 h-8 bg-gradient-to-br from-slate-300 to-slate-400 rounded-full flex items-center justify-center cursor-pointer hover:shadow-md transition-shadow duration-200"
-            onClick={() => navigate('/profile')}
-          >
-            <User size={16} className="text-slate-600" />
-          </div>
+          {/* Removed profile icon */}
         </header>
 
         {/* Centered Hero Section */}
@@ -152,6 +100,25 @@ export default function Index() {
 
             {/* Search Section */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-xl p-6 w-full relative">
+              {/* Search Mode Toggle */}
+              <div className="flex justify-end mb-4">
+                <div className="flex items-center gap-3 bg-slate-100/80 rounded-lg p-2">
+                  <div className="flex items-center gap-2">
+                    <Database className={`${!isDeepResearch ? 'text-blue-600' : 'text-slate-500'}`} size={16} />
+                    <span className={`text-sm font-medium ${!isDeepResearch ? 'text-blue-600' : 'text-slate-500'}`}>Classical Search</span>
+                  </div>
+                  <Switch
+                    checked={isDeepResearch}
+                    onCheckedChange={setIsDeepResearch}
+                    className="data-[state=checked]:bg-blue-600 mx-2"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Sparkles className={`${isDeepResearch ? 'text-blue-600' : 'text-slate-500'}`} size={16} />
+                    <span className={`text-sm font-medium ${isDeepResearch ? 'text-blue-600' : 'text-slate-500'}`}>Deep Search</span>
+                  </div>
+                </div>
+              </div>
+
               <label className="block text-left text-sm font-medium text-slate-700 mb-2">
                 Describe your skills and preferences
               </label>
