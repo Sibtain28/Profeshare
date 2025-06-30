@@ -17,7 +17,7 @@ export default function ResultsPage() {
   const mode = location.state?.mode || 'deep';
   const { studentData } = useStudent();
 
-  const [activeTab, setActiveTab] = useState<'steps' | 'results'>('steps');
+  const [activeTab, setActiveTab] = useState<'steps' | 'results'>(mode === 'deep' ? 'steps' : 'results');
   const [stepIndex, setStepIndex] = useState(0);
   const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
   const [apiDone, setApiDone] = useState(false);
@@ -25,6 +25,13 @@ export default function ResultsPage() {
   const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [progressHeight, setProgressHeight] = useState(0);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  // Track expanded state for each job card by index
+  const [expandedCards, setExpandedCards] = useState<{ [index: number]: boolean }>({});
+
+  const handleExpand = (index: number) => {
+    setExpandedCards((prev) => ({ ...prev, [index]: true }));
+  };
 
   const steps = [
     { title: 'Student profile being analysed' },
@@ -51,7 +58,19 @@ export default function ResultsPage() {
           interests: prompt,
           mode: mode
         };
-        const res = await ApiService.searchJobs(request);
+        let res;
+        if (mode === 'classical') {
+          // Classical search: only MongoDB results
+          const response = await fetch('https://v0001-google-production.up.railway.app/mongo-only', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request),
+          });
+          res = await response.json();
+        } else {
+          // Deep search: LLM analysis and MongoDB results
+          res = await ApiService.searchJobs(request);
+        }
         if (!cancelled) {
           setApiResponse(res);
           setApiDone(true);
@@ -107,7 +126,15 @@ export default function ResultsPage() {
 
   const renderJobCard = (job: JobResult, index: number) => {
     const matchInfo = getMatchStrength(job.score);
-    
+    const expanded = !!expandedCards[index];
+
+    // Strip HTML tags for word count, but keep HTML for rendering
+    const plainText = job.jobDescription.replace(/<[^>]+>/g, '');
+    const words = plainText.split(/\s+/);
+    const wordLimit = 40;
+    const isLong = words.length > wordLimit;
+    const shortText = words.slice(0, wordLimit).join(' ') + (isLong ? '...' : '');
+
     return (
       <Card key={index} className="mb-6">
         <CardHeader>
@@ -150,12 +177,31 @@ export default function ResultsPage() {
         <CardContent>
           <div className="mb-4">
             <h4 className="font-semibold text-slate-800 mb-2">Job Description</h4>
-            <div 
-              className="text-sm text-slate-700 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: job.jobDescription }}
-            />
+            <div
+              className="relative text-sm text-slate-700 prose prose-sm max-w-none overflow-hidden"
+              style={{ minHeight: '120px', maxHeight: expanded || !isLong ? 'none' : '120px' }}
+            >
+              <div
+                dangerouslySetInnerHTML={{ __html: expanded || !isLong ? job.jobDescription : shortText }}
+              />
+              {isLong && !expanded && (
+                <button
+                  className="absolute bottom-2 right-2 text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+                  onClick={() => handleExpand(index)}
+                >
+                  Read more
+                </button>
+              )}
+              {isLong && expanded && (
+                <button
+                  className="absolute bottom-2 right-2 text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+                  onClick={() => setExpandedCards((prev) => ({ ...prev, [index]: false }))}
+                >
+                  Collapse
+                </button>
+              )}
+            </div>
           </div>
-          
           <div>
             <h4 className="font-semibold text-slate-800 mb-2">Skills & Tags</h4>
             <div className="flex flex-wrap gap-2">
@@ -195,39 +241,55 @@ export default function ResultsPage() {
 
           <div className="text-left mb-6 pl-4">
             <div className="text-3xl font-light text-slate-800 mb-8 -mt-2">{prompt}</div>
-            <div className="flex space-x-6 border-b border-slate-200">
-              {apiResponse && (
+            {mode === 'deep' && (
+              <div className="flex space-x-6 border-b border-slate-200">
+                {apiResponse && (
+                  <button
+                    className={`pb-1 border-b-2 text-sm font-medium flex items-center gap-1 ${
+                      activeTab === 'results' ? 'border-black text-black' : 'border-transparent text-slate-500'
+                    }`}
+                    onClick={() => setActiveTab('results')}
+                  >
+                    <Briefcase size={16} />
+                    Job Results
+                  </button>
+                )}
                 <button
                   className={`pb-1 border-b-2 text-sm font-medium flex items-center gap-1 ${
-                    activeTab === 'results' ? 'border-black text-black' : 'border-transparent text-slate-500'
+                    activeTab === 'steps' ? 'border-black text-black' : 'border-transparent text-slate-500'
                   }`}
-                  onClick={() => setActiveTab('results')}
+                  onClick={() => setActiveTab('steps')}
                 >
-                  <Briefcase size={16} />
-                  Job Results
+                  <ListOrdered size={16} />
+                  Thinking
                 </button>
-              )}
-              <button
-                className={`pb-1 border-b-2 text-sm font-medium flex items-center gap-1 ${
-                  activeTab === 'steps' ? 'border-black text-black' : 'border-transparent text-slate-500'
-                }`}
-                onClick={() => setActiveTab('steps')}
-              >
-                <ListOrdered size={16} />
-                Thinking
-              </button>
-            </div>
+              </div>
+            )}
           </div>
 
-          {/* Show results first if they're available */}
-          {apiResponse && activeTab === 'results' && (
+          {/* Loader for classical search */}
+          {mode === 'classical' && !apiDone && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="animate-spin text-blue-500 mb-4" size={48} />
+              <div className="text-lg font-medium text-slate-700">Fetching jobs...</div>
+            </div>
+          )}
+          {/* Show results for classical search */}
+          {mode === 'classical' && apiDone && apiResponse && apiResponse.mongodb_result && apiResponse.mongodb_result.length > 0 && (
             <div className="space-y-6">
-              {/* Job Results */}
               <h2 className="text-2xl font-semibold text-slate-800 mb-6">
                 Job Matches Found
               </h2>
-
-              {/* LLM Analysis Cards */}
+              {apiResponse.mongodb_result.map((job, index) => renderJobCard(job, index))}
+            </div>
+          )}
+          {/* Deep search: show tabs and stepper/results as before */}
+          {mode === 'deep' && apiResponse && activeTab === 'results' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-semibold text-slate-800 mb-6">
+                Job Matches Found
+              </h2>
+              {/* LLM Analysis Cards (only for deep search) */}
               {(() => {
                 let analysisArr: any[] = [];
                 let error: string | null = null;
@@ -267,45 +329,48 @@ export default function ResultsPage() {
                   );
                 }
                 return (
-                  <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="mb-6 flex flex-col gap-8">
                     {analysisArr.map((item, idx) => (
-                      <Card key={idx} className="shadow-xl border border-slate-200/60 bg-white/80 dark:bg-[#232328] dark:border-[#2d2d31]">
-                        <CardHeader>
-                          <div className="flex items-center gap-3 mb-2">
-                            <Building2 className="text-blue-600 dark:text-blue-400" size={20} />
-                            <span className="text-lg font-semibold text-slate-800 dark:text-slate-100">{item.company_name}</span>
+                      <Card
+                        key={idx}
+                        className="shadow-2xl border-2 border-blue-400/80 bg-white/95 dark:bg-[#232328] dark:border-blue-500/80 rounded-2xl px-8 py-8 transition-transform hover:scale-[1.02] hover:shadow-blue-200 dark:hover:shadow-blue-900"
+                      >
+                        <CardHeader className="mb-2">
+                          <div className="flex items-center gap-4 mb-4">
+                            <Building2 className="text-blue-700 dark:text-blue-400" size={32} />
+                            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{item.company_name}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 mb-2">
-                            <Briefcase size={16} />
-                            <span className="font-medium">{item.job_role}</span>
+                          <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 mb-4">
+                            <Briefcase size={22} />
+                            <span className="text-xl font-semibold">{item.job_role}</span>
                           </div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Star size={18} className="text-yellow-400" fill="#facc15" />
-                            <span className="font-semibold text-slate-700 dark:text-slate-200">Match Score:</span>
-                            <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{item.match_score}</span>
+                          <div className="flex items-center gap-3 mb-4">
+                            <Star size={28} className="text-yellow-400" fill="#facc15" />
+                            <span className="font-semibold text-xl text-slate-800 dark:text-slate-200">Match Score:</span>
+                            <span className="text-2xl font-extrabold text-blue-700 dark:text-blue-400">{item.match_score}</span>
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <div className="mb-3">
-                            <div className="font-semibold text-green-600 dark:text-green-400 flex items-center gap-2 mb-1">
-                              <CheckCircle size={16} /> Strengths
+                          <div className="mb-6">
+                            <div className="font-bold text-green-700 dark:text-green-400 flex items-center gap-3 mb-2 text-lg">
+                              <CheckCircle size={20} /> Strengths
                             </div>
-                            <ul className="list-disc pl-6 space-y-1">
+                            <ul className="list-disc pl-8 space-y-2">
                               {item.strengths && item.strengths.length > 0 ? item.strengths.map((s: string, i: number) => (
-                                <li key={i} className="text-slate-700 dark:text-slate-200 text-sm flex items-start gap-2">
-                                  <span className="mt-0.5"><CheckCircle size={14} className="text-green-500 dark:text-green-400" /></span> {s}
+                                <li key={i} className="text-slate-800 dark:text-slate-200 text-base flex items-start gap-2">
+                                  <span className="mt-0.5"><CheckCircle size={16} className="text-green-500 dark:text-green-400" /></span> {s}
                                 </li>
                               )) : <li className="text-slate-400 italic">None listed</li>}
                             </ul>
                           </div>
                           <div>
-                            <div className="font-semibold text-red-600 dark:text-red-400 flex items-center gap-2 mb-1">
-                              <AlertTriangle size={16} /> Weaknesses
+                            <div className="font-bold text-red-700 dark:text-red-400 flex items-center gap-3 mb-2 text-lg">
+                              <AlertTriangle size={20} /> Weaknesses
                             </div>
-                            <ul className="list-disc pl-6 space-y-1">
+                            <ul className="list-disc pl-8 space-y-2">
                               {item.weakness && item.weakness.length > 0 ? item.weakness.map((w: string, i: number) => (
-                                <li key={i} className="text-slate-700 dark:text-slate-200 text-sm flex items-start gap-2">
-                                  <span className="mt-0.5"><AlertTriangle size={14} className="text-red-500 dark:text-red-400" /></span> {w}
+                                <li key={i} className="text-slate-800 dark:text-slate-200 text-base flex items-start gap-2">
+                                  <span className="mt-0.5"><AlertTriangle size={16} className="text-red-500 dark:text-red-400" /></span> {w}
                                 </li>
                               )) : <li className="text-slate-400 italic">None listed</li>}
                             </ul>
@@ -316,14 +381,10 @@ export default function ResultsPage() {
                   </div>
                 );
               })()}
-
-              {/* Job Results Cards */}
-              {apiResponse.mongodb_result.map((job, index) => renderJobCard(job, index))}
             </div>
           )}
-
-          {/* Thinking steps */}
-          {activeTab === 'steps' && (
+          {/* Thinking steps (only for deep search) */}
+          {mode === 'deep' && activeTab === 'steps' && (
             <div className="relative flex max-h-[70vh] overflow-y-auto pr-2">
               {/* Vertical thread line */}
               <div className="w-6 relative" ref={progressRef}>
