@@ -182,7 +182,7 @@ export default function ResultsPage() {
             className="flex items-center text-slate-600 hover:text-blue-600 transition mb-6"
           >
             <ArrowLeft size={20} className="mr-1" />
-            <span className="text-sm font-medium">Back to Edit Search</span>
+            <span className="text-sm font-medium">Back to Search</span>
           </button>
 
           <div className="text-left mb-6 pl-4">
