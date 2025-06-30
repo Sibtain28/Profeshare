@@ -24,6 +24,7 @@ export default function ResultsPage() {
   const progressRef = useRef<HTMLDivElement>(null);
   const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [progressHeight, setProgressHeight] = useState(0);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const steps = [
     { title: 'Student profile being analysed' },
@@ -84,6 +85,13 @@ export default function ResultsPage() {
       setProgressHeight(bottom - top);
     }
   }, [stepIndex]);
+
+  useEffect(() => {
+    if (apiResponse && apiResponse.analysis) {
+      // eslint-disable-next-line no-console
+      console.log('LLM Analysis (raw):', apiResponse.analysis);
+    }
+  }, [apiResponse]);
 
   const formatScore = (score: number) => {
     return Math.round(score);
@@ -222,12 +230,43 @@ export default function ResultsPage() {
               {/* LLM Analysis Cards */}
               {(() => {
                 let analysisArr: any[] = [];
+                let error: string | null = null;
                 try {
-                  analysisArr = typeof apiResponse.analysis === 'string' ? JSON.parse(apiResponse.analysis) : apiResponse.analysis;
-                } catch (e) {
-                  // fallback: show nothing if parsing fails
+                  let analysis = apiResponse.analysis;
+                  if (typeof analysis === 'string') {
+                    try {
+                      analysis = JSON.parse(analysis);
+                    } catch {
+                      analysis = JSON.parse(JSON.parse(analysis));
+                    }
+                  }
+                  if (Array.isArray(analysis)) {
+                    analysisArr = analysis;
+                  } else {
+                    error = 'Analysis is not an array.';
+                  }
+                } catch (e: any) {
+                  error = 'Failed to parse LLM analysis: ' + (e.message || e);
                 }
-                return analysisArr && Array.isArray(analysisArr) && analysisArr.length > 0 ? (
+                if (error) {
+                  return (
+                    <div className="mb-6">
+                      <div className="bg-red-100 text-red-700 rounded-lg p-4 border border-red-300 font-semibold">
+                        {error}
+                      </div>
+                    </div>
+                  );
+                }
+                if (!analysisArr.length) {
+                  return (
+                    <div className="mb-6">
+                      <div className="bg-yellow-100 text-yellow-700 rounded-lg p-4 border border-yellow-300 font-semibold">
+                        No LLM analysis results found.
+                      </div>
+                    </div>
+                  );
+                }
+                return (
                   <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     {analysisArr.map((item, idx) => (
                       <Card key={idx} className="shadow-xl border border-slate-200/60 bg-white/80 dark:bg-[#232328] dark:border-[#2d2d31]">
@@ -275,7 +314,7 @@ export default function ResultsPage() {
                       </Card>
                     ))}
                   </div>
-                ) : null;
+                );
               })()}
 
               {/* Job Results Cards */}
