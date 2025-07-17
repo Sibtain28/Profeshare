@@ -43,6 +43,7 @@ interface JobPreferences {
 }
 
 interface StudentData {
+  student_id: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -210,7 +211,7 @@ const StudentProfile = () => {
   };
 
   const handleLogout = () => {
-    // Redirect to login and show success message
+    localStorage.clear(); // Clear all session data
     navigate('/login');
     setShowSettings(false);
     setShowLogoutSuccess(true);

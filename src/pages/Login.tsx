@@ -46,6 +46,8 @@ const Login = ({ onLogin }: LoginProps) => {
       const user = await signIn(email, password);
       if (user) {
         setStudentData(user);
+        localStorage.setItem("studentData", JSON.stringify(user)); // Store user info
+        localStorage.setItem("isLoggedIn", "true"); // Store login flag
         onLogin();
       }
     } catch (err: any) {

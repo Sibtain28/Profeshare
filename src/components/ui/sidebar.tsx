@@ -754,7 +754,7 @@ export function AppSidebar({ activeTab }: { activeTab: string }) {
   };
 
   const handleLogout = () => {
-    localStorage.setItem('logoutSuccess', '1');
+    localStorage.clear(); // Clear all session data
     window.location.reload();
   };
 

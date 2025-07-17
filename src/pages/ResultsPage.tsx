@@ -293,8 +293,10 @@ export default function ResultsPage() {
               {(() => {
                 let analysisArr: any[] = [];
                 let error: string | null = null;
+                let rawAnalysis: any = null;
                 try {
                   let analysis = apiResponse.analysis;
+                  rawAnalysis = analysis; // Store raw analysis for fallback
                   if (typeof analysis === 'string') {
                     try {
                       analysis = JSON.parse(analysis);
@@ -313,8 +315,14 @@ export default function ResultsPage() {
                 if (error) {
                   return (
                     <div className="mb-6">
-                      <div className="bg-red-100 text-red-700 rounded-lg p-4 border border-red-300 font-semibold">
+                      <div className="bg-red-100 text-red-700 rounded-lg p-4 border border-red-300 font-semibold mb-4">
                         {error}
+                      </div>
+                      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 border border-slate-300 dark:border-slate-600">
+                        <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-2">Raw LLM Output:</h3>
+                        <pre className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap overflow-x-auto">
+                          {typeof rawAnalysis === 'string' ? rawAnalysis : JSON.stringify(rawAnalysis, null, 2)}
+                        </pre>
                       </div>
                     </div>
                   );
@@ -322,8 +330,14 @@ export default function ResultsPage() {
                 if (!analysisArr.length) {
                   return (
                     <div className="mb-6">
-                      <div className="bg-yellow-100 text-yellow-700 rounded-lg p-4 border border-yellow-300 font-semibold">
+                      <div className="bg-yellow-100 text-yellow-700 rounded-lg p-4 border border-yellow-300 font-semibold mb-4">
                         No LLM analysis results found.
+                      </div>
+                      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 border border-slate-300 dark:border-slate-600">
+                        <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-2">Raw LLM Output:</h3>
+                        <pre className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap overflow-x-auto">
+                          {typeof rawAnalysis === 'string' ? rawAnalysis : JSON.stringify(rawAnalysis, null, 2)}
+                        </pre>
                       </div>
                     </div>
                   );

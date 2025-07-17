@@ -158,10 +158,29 @@ interface StudentProviderProps {
 }
 
 export const StudentProvider: React.FC<StudentProviderProps> = ({ children }) => {
-  const [studentData, setStudentData] = useState<StudentData>(defaultStudentData);
+  const [studentData, setStudentDataState] = useState<StudentData>(() => {
+    const stored = localStorage.getItem("studentData");
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return defaultStudentData;
+      }
+    }
+    return defaultStudentData;
+  });
+
+  const setStudentData = (data: StudentData) => {
+    setStudentDataState(data);
+    localStorage.setItem("studentData", JSON.stringify(data));
+  };
 
   const updateStudentData = (updates: Partial<StudentData>) => {
-    setStudentData(prev => ({ ...prev, ...updates }));
+    setStudentDataState(prev => {
+      const updated = { ...prev, ...updates };
+      localStorage.setItem("studentData", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,7 +16,15 @@ import ResultsPage from './pages/ResultsPage';
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    // Check localStorage for session on initial load
+    return localStorage.getItem("isLoggedIn") === "true";
+  });
+
+  useEffect(() => {
+    // Keep localStorage in sync with isLoggedIn state
+    localStorage.setItem("isLoggedIn", isLoggedIn ? "true" : "false");
+  }, [isLoggedIn]);
 
   const handleLogin = () => {
     setIsLoggedIn(true);
