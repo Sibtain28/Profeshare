@@ -61,7 +61,7 @@ export default function ResultsPage() {
         let res;
         if (mode === 'classical') {
           // Classical search: only MongoDB results
-          const response = await fetch('https://v0001-google-production.up.railway.app/mongo-only', {
+          const response = await fetch('https://v0001-google-new-production.up.railway.app/mongo-only', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(request),
@@ -343,55 +343,83 @@ export default function ResultsPage() {
                   );
                 }
                 return (
-                  <div className="mb-6 flex flex-col gap-8">
-                    {analysisArr.map((item, idx) => (
-                      <Card
-                        key={idx}
-                        className="shadow-2xl border-2 border-blue-400/80 bg-white/95 dark:bg-[#232328] dark:border-blue-500/80 rounded-2xl px-8 py-8 transition-transform hover:scale-[1.02] hover:shadow-blue-200 dark:hover:shadow-blue-900"
-                      >
-                        <CardHeader className="mb-2">
-                          <div className="flex items-center gap-4 mb-4">
-                            <Building2 className="text-blue-700 dark:text-blue-400" size={32} />
-                            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{item.company_name}</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 mb-4">
-                            <Briefcase size={22} />
-                            <span className="text-xl font-semibold">{item.job_role}</span>
-                          </div>
-                          <div className="flex items-center gap-3 mb-4">
-                            <Star size={28} className="text-yellow-400" fill="#facc15" />
-                            <span className="font-semibold text-xl text-slate-800 dark:text-slate-200">Match Score:</span>
-                            <span className="text-2xl font-extrabold text-blue-700 dark:text-blue-400">{item.match_score}</span>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="mb-6">
-                            <div className="font-bold text-green-700 dark:text-green-400 flex items-center gap-3 mb-2 text-lg">
-                              <CheckCircle size={20} /> Strengths
+                  <div className="space-y-6">
+                    {analysisArr.map((item, idx) => {
+                      const matchInfo = getMatchStrength(parseInt(item.match_score) || 0);
+                      return (
+                        <Card key={idx} className="mb-6">
+                          <CardHeader>
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <CardTitle className="text-xl mb-2">{item.job_role}</CardTitle>
+                                <div className="flex items-center gap-2 text-slate-600 mb-2">
+                                  <Building2 size={16} />
+                                  <span className="font-medium">{item.company_name}</span>
+                                  <span>•</span>
+                                  <MapPin size={16} />
+                                  <span>{item.location || 'Location not specified'}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1">
+                                    {[...Array(5)].map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        size={16}
+                                        className={`${i < matchInfo.stars ? matchInfo.color : 'text-slate-300'}`}
+                                        fill={i < matchInfo.stars ? 'currentColor' : 'none'}
+                                      />
+                                    ))}
+                                  </div>
+                                  <Badge variant="secondary" className={matchInfo.color}>
+                                    {matchInfo.label} ({item.match_score}%)
+                                  </Badge>
+                                </div>
+                              </div>
+                              {item.jdURL && (
+                                <a
+                                  href={item.jdURL}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800"
+                                >
+                                  <ExternalLink size={20} />
+                                </a>
+                              )}
                             </div>
-                            <ul className="list-disc pl-8 space-y-2">
-                              {item.strengths && item.strengths.length > 0 ? item.strengths.map((s: string, i: number) => (
-                                <li key={i} className="text-slate-800 dark:text-slate-200 text-base flex items-start gap-2">
-                                  <span className="mt-0.5"><CheckCircle size={16} className="text-green-500 dark:text-green-400" /></span> {s}
-                                </li>
-                              )) : <li className="text-slate-400 italic">None listed</li>}
-                            </ul>
-                          </div>
-                          <div>
-                            <div className="font-bold text-red-700 dark:text-red-400 flex items-center gap-3 mb-2 text-lg">
-                              <AlertTriangle size={20} /> Weaknesses
+                          </CardHeader>
+                          <CardContent>
+                            <div className="mb-4">
+                              <h4 className="font-semibold text-slate-800 mb-2">Strengths</h4>
+                              <div className="text-sm text-slate-700">
+                                {item.strengths && item.strengths.length > 0 ? (
+                                  <ul className="list-disc pl-5 space-y-1">
+                                    {item.strengths.map((s: string, i: number) => (
+                                      <li key={i}>{s}</li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <span className="text-slate-400 italic">None listed</span>
+                                )}
+                              </div>
                             </div>
-                            <ul className="list-disc pl-8 space-y-2">
-                              {item.weakness && item.weakness.length > 0 ? item.weakness.map((w: string, i: number) => (
-                                <li key={i} className="text-slate-800 dark:text-slate-200 text-base flex items-start gap-2">
-                                  <span className="mt-0.5"><AlertTriangle size={16} className="text-red-500 dark:text-red-400" /></span> {w}
-                                </li>
-                              )) : <li className="text-slate-400 italic">None listed</li>}
-                            </ul>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            <div>
+                              <h4 className="font-semibold text-slate-800 mb-2">Areas for Improvement</h4>
+                              <div className="text-sm text-slate-700">
+                                {item.weakness && item.weakness.length > 0 ? (
+                                  <ul className="list-disc pl-5 space-y-1">
+                                    {item.weakness.map((w: string, i: number) => (
+                                      <li key={i}>{w}</li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <span className="text-slate-400 italic">None listed</span>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 );
               })()}
