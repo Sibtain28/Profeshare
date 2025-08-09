@@ -24,7 +24,7 @@ export interface ApiRequest {
 }
 
 // API Service
-const API_BASE_URL = 'https://v0001-google-production.up.railway.app';
+const API_BASE_URL = 'https://v0001-google-new-production.up.railway.app';
 
 export class ApiService {
   static async searchJobs(request: ApiRequest): Promise<ApiResponse> {
